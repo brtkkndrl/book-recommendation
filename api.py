@@ -25,12 +25,7 @@ def load_dataframes_ratings():
 
     return books_df, ratings_df, users_df
 
-books_df, ratings_df, users_df = load_dataframes_ratings()
-
 ### ACTION
-
-print("Books before: ", books_df.shape)
-print("Ratings before: ", ratings_df.shape)
 
 def merge_by_title(books_df, ratings_df):
     books_df = books_df.copy()
@@ -57,15 +52,7 @@ def merge_by_title(books_df, ratings_df):
 
     return books_df, ratings_df
 
-books_df, ratings_df = merge_by_title(books_df=books_df, ratings_df=ratings_df)
-
-print("Books after: ", books_df.shape)
-print("Ratings after: ", ratings_df.shape)
-
 ### ACTION
-
-print(f"Books count before: {ratings_df['ISBN'].nunique()}")
-print(f"Users count before: {ratings_df['User-ID'].nunique()}")
 
 def filter_rankings_freq(df):
     """Filters out rows, to leave keep min ratings per book and min ratings per user"""
@@ -94,11 +81,6 @@ def filter_rankings_freq(df):
     print(f"Iterations: {i}")
 
     return df
-
-df_ratings_filtered = filter_rankings_freq(ratings_df)
-
-print(f"Books remaining: {df_ratings_filtered['ISBN'].nunique()}")
-print(f"Users remaining: {df_ratings_filtered['User-ID'].nunique()}")
 
 ### ACTION
 
@@ -196,10 +178,6 @@ def load_dataframes_CB():
 
     return books_info_df
 
-books_info_df = load_dataframes_CB()
-
-print(books_info_df.shape)
-print(books_info_df.columns)
 
 ### ACTION
 
@@ -223,9 +201,6 @@ def prep_genres_CB(genres):
         result.update(part.strip().lower() for part in g.split(','))
     return list(result)
 
-books_info_df['genres'] = books_info_df['genres'].apply(prep_genres_CB)
-
-print(books_info_df.iloc[0]["genres"])
 
 ### ACTION
 
@@ -279,10 +254,6 @@ def merge_by_title_CB(df):
 
     return df
 
-books_info_df = merge_by_title_CB(books_info_df)
-
-print("Books after: ", books_info_df.shape)
-
 ### ACTION
 
 def assing_quality_score_CB(df):
@@ -302,8 +273,6 @@ def assing_quality_score_CB(df):
     df['quality_score'] = df.apply(quality_score, axis=1)
 
     return df
-
-books_info_df = assing_quality_score_CB(books_info_df)
 
 ### ACTION
 
@@ -349,7 +318,6 @@ def filter_genre_freq_CB(df):
     print(f"Books after: {df.shape[0]}")
     return df
 
-books_genre_df = filter_genre_freq_CB(books_info_df)
 
 ### ACTION
 
@@ -432,9 +400,6 @@ class RecomModelGenreBased:
         result = result.sort_values(['similarity', 'quality_score'], ascending=False)
         return result.head(top_n)
 
-model_genre_based = RecomModelGenreBased(books_genre_df, embedding_dim=100)
-
-model_genre_based.print_info()
 
 ### ACTION
 
@@ -458,7 +423,6 @@ def prep_descriptions_CB(df):
 
     return df
 
-books_desc_df = prep_descriptions_CB(books_info_df)
 
 ### ACTION
 
@@ -509,13 +473,6 @@ class RecomModelDescBased():
 
         result = result.sort_values(['similarity', 'quality_score'], ascending=False)
         return result.head(top_n)
-
-desc_model = RecomModelDescBased(books_desc_df)
-
-print("Book: ")
-print(books_desc_df.loc[books_desc_df['ISBN'] == '0439554934'][['title', 'author']])
-print("Reccomandations: ")
-print(desc_model.recommend('0439554934', exclude_same_series=True)[['title', 'author']])
 
 from rapidfuzz import process, fuzz
 
@@ -613,6 +570,21 @@ class CombinedRecommender():
                 else {'found': None, 'recommendations': []}
             )
         }
+
+
+
+####
+books_df, ratings_df, users_df = load_dataframes_ratings()
+books_df, ratings_df = merge_by_title(books_df=books_df, ratings_df=ratings_df)
+df_ratings_filtered = filter_rankings_freq(ratings_df)
+
+books_info_df = load_dataframes_CB()
+books_info_df['genres'] = books_info_df['genres'].apply(prep_genres_CB)
+books_info_df = merge_by_title_CB(books_info_df)
+books_info_df = assing_quality_score_CB(books_info_df)
+books_genre_df = filter_genre_freq_CB(books_info_df)
+books_desc_df = prep_descriptions_CB(books_info_df)
+
 
 combined_model = CombinedRecommender(books_df=books_df,
                                      ratings_df=df_ratings_filtered,
