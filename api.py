@@ -608,7 +608,33 @@ combined_model = CombinedRecommender(books_df=books_df,
 
 from pprint import pprint
 
-#pd.set_option('display.max_colwidth', None)
-#print(combined_model.find_title("Crime and Punishment", limit=3))
-# pprint(combined_model.recommend_by_isbn(isbn='0439554934', exclude_same_series = True, n=3))
-pprint(combined_model.recommend_by_title(title="Game of Thrones", n=3))
+print("Listening to request...")
+print("\tSEARCH [title]")
+print("\tRECOM [title]")
+print("\tRECOM_ISBN [isbn]")
+print("\tEXIT")
+print()
+
+while True:
+    req = input()
+
+    if req.startswith("EXIT"):
+        exit(0)
+
+
+    token = " ".join(req.split()[1:]).strip()
+
+    if req.startswith("SEARCH"):
+        pprint(combined_model.find_title(token, limit=3), width=120, compact=False)
+        print()
+    elif req.startswith("RECOM"):
+        pprint(combined_model.recommend_by_title(title=token, n=3), width=120, compact=False)
+        print()
+    elif req.startswith("RECOM_ISBN"):
+        pprint(combined_model.recommend_by_isbn(isbn=token, n=3), width=120, compact=False)
+        print()
+    else:
+        print("Unknown command.")
+        continue
+
+# Game of Thrones, Harry Potter, Sherlock Holmes
