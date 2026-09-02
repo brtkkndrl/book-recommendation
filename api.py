@@ -398,7 +398,7 @@ class RecomModelGenreBased:
                 result = result[result['author'] != query_author]
 
         result = result.sort_values(['similarity', 'quality_score'], ascending=False)
-        return result.head(top_n)
+        return result.head(top_n)[['title', 'author']]
 
 
 ### ACTION
@@ -472,16 +472,16 @@ class RecomModelDescBased():
                 result = result[result['author'] != query_author]
 
         result = result.sort_values(['similarity', 'quality_score'], ascending=False)
-        return result.head(top_n)
+        return result.head(top_n)[['title', 'author']]
 
 from rapidfuzz import process, fuzz
 
 class CombinedRecommender():
     def __init__(self, books_df, ratings_df, books_genre_df, books_desc_df):
-        self.books_df = books_df.copy()
-        self.ratings_df = ratings_df.copy()
-        self.books_genre_df = books_genre_df.copy()
-        self.books_desc_df = books_desc_df.copy()
+        self.books_df = books_df
+        self.ratings_df = ratings_df
+        self.books_genre_df = books_genre_df
+        self.books_desc_df = books_desc_df
 
         self.model_cf = RecomModelCF(books_df=books_df, k=0, raw=True)
         self.model_cf.train(ratings_df)
@@ -574,20 +574,35 @@ class CombinedRecommender():
 
 
 ####
-books_df, ratings_df, users_df = load_dataframes_ratings()
-books_df, ratings_df = merge_by_title(books_df=books_df, ratings_df=ratings_df)
-df_ratings_filtered = filter_rankings_freq(ratings_df)
 
-books_info_df = load_dataframes_CB()
-books_info_df['genres'] = books_info_df['genres'].apply(prep_genres_CB)
-books_info_df = merge_by_title_CB(books_info_df)
-books_info_df = assing_quality_score_CB(books_info_df)
-books_genre_df = filter_genre_freq_CB(books_info_df)
-books_desc_df = prep_descriptions_CB(books_info_df)
+if os.path.exists('books_df.pkl'):
+    print("Using cached dataframes.")
+    books_df = pd.read_pickle('books_df.pkl')
+    ratings_df = pd.read_pickle('ratings_df.pkl')
+    users_df = pd.read_pickle('users_df.pkl')
+    books_genre_df = pd.read_pickle('books_genre_df.pkl')
+    books_desc_df = pd.read_pickle('books_desc_df.pkl')
+else:
+    books_df, ratings_df, users_df = load_dataframes_ratings()
+    books_df, ratings_df = merge_by_title(books_df=books_df, ratings_df=ratings_df)
+    ratings_df = filter_rankings_freq(ratings_df)
+
+    books_info_df = load_dataframes_CB()
+    books_info_df['genres'] = books_info_df['genres'].apply(prep_genres_CB)
+    books_info_df = merge_by_title_CB(books_info_df)
+    books_info_df = assing_quality_score_CB(books_info_df)
+    books_genre_df = filter_genre_freq_CB(books_info_df)
+    books_desc_df = prep_descriptions_CB(books_info_df)
+
+    books_df.to_pickle('books_df.pkl')
+    ratings_df.to_pickle('ratings_df.pkl')
+    users_df.to_pickle('users_df.pkl')
+    books_genre_df.to_pickle('books_genre_df.pkl')
+    books_desc_df.to_pickle('books_desc_df.pkl')
 
 
 combined_model = CombinedRecommender(books_df=books_df,
-                                     ratings_df=df_ratings_filtered,
+                                     ratings_df=ratings_df,
                                      books_genre_df=books_genre_df,
                                      books_desc_df=books_desc_df)
 
