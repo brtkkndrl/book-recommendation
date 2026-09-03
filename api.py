@@ -385,24 +385,31 @@ class RecomModelGenreBased:
         row = self.isbn_to_row[isbn]
         query_vec = self.matrix[row]
 
-        
-        query_norm = np.linalg.norm(query_vec)
+        query_norm = self.norms[row]
         sims = self.matrix @ query_vec / (self.norms * query_norm + 1e-9)
 
-        result = self.df[['ISBN', 'title', 'author', 'quality_score', 'series_name']].assign(similarity=sims)
-        result = result.drop(row)
+        result = self.df[
+            ['ISBN', 'title', 'author', 'quality_score', 'series_name']
+        ].copy()
+        result['similarity'] = sims
+
+        result = result[result['ISBN'] != isbn]
 
         if exclude_same_series:
-            query_series = self.df.loc[row, 'series_name']
+            query_series = self.df.iloc[row]['series_name']
             if pd.notna(query_series):
                 result = result[result['series_name'] != query_series]
 
         if exclude_same_author:
-            query_author = self.df.loc[row, 'author']
+            query_author = self.df.iloc[row]['author']
             if pd.notna(query_author):
                 result = result[result['author'] != query_author]
 
-        result = result.sort_values(['similarity', 'quality_score'], ascending=False)
+        result = result.sort_values(
+            ['similarity', 'quality_score'],
+            ascending=False
+        )
+
         return result.head(top_n)[['title', 'author']]
 
 
@@ -460,23 +467,34 @@ class RecomModelDescBased():
         row = self.isbn_to_row[isbn]
         query_vec = self.desc_embeddings[row]
 
-        query_norm = np.linalg.norm(query_vec)
+        query_norm = self.norms[row]
         sims = self.desc_embeddings @ query_vec / (self.norms * query_norm + 1e-9)
 
-        result = self.df[['ISBN', 'title', 'author', 'quality_score', 'series_name']].assign(similarity=sims)
-        result = result.drop(row)
+        result = self.df[
+            ['ISBN', 'title', 'author', 'quality_score', 'series_name']
+        ].copy()
+        result['similarity'] = sims
 
+        # Exclude the queried book
+        result = result[result['ISBN'] != isbn]
+
+        # Exclude books from the same series
         if exclude_same_series:
-            query_series = self.df.loc[row, 'series_name']
+            query_series = self.df.iloc[row]['series_name']
             if pd.notna(query_series):
                 result = result[result['series_name'] != query_series]
-        
+
+        # Exclude books by the same author
         if exclude_same_author:
-            query_author = self.df.loc[row, 'author']
+            query_author = self.df.iloc[row]['author']
             if pd.notna(query_author):
                 result = result[result['author'] != query_author]
 
-        result = result.sort_values(['similarity', 'quality_score'], ascending=False)
+        result = result.sort_values(
+            ['similarity', 'quality_score'],
+            ascending=False
+        )
+
         return result.head(top_n)[['title', 'author']]
 
 from rapidfuzz import process, fuzz
@@ -642,4 +660,4 @@ while True:
         print("Unknown command.")
         continue
 
-# Game of Thrones, Harry Potter, Sherlock Holmes
+# Game of Thrones, Harry Potter and the Sorcerers Stone, Sherlock Holmes, The Hunger Games
