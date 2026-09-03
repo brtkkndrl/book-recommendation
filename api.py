@@ -33,8 +33,13 @@ def merge_by_title(books_df, ratings_df):
 
     # use clean titles
     books_df['title_clean'] = books_df['title'].str.replace(r'\s*\([^)]*\)\s*$', '', regex=True)
+    books_df['title_clean'] = books_df['title_clean'].str.replace('&amp;', 'and', regex=False)
     books_df['title'] = books_df['title_clean']
     books_df = books_df.drop(columns='title_clean')
+
+    # clean up author names
+    mask = books_df["author"].str.isupper() | books_df["author"].str.islower()
+    books_df["author"] = books_df["author"].where(~mask, books_df["author"].str.title())
 
     # use smallest ISBN when mapping title and author -> ISBN
     isbn_map = books_df.groupby(['title', 'author'], dropna=False)['ISBN'].min().reset_index()
